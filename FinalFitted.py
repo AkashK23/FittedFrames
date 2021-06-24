@@ -212,61 +212,6 @@ def findClosetPt(pt, pts):
     print([ind0, ind1])
     return dist, [ind0, ind1]
 
-# def findClosetPt(pt, pts):
-    # print(pt)
-    # print(pts[0])
-    # test = pt[2]
-    dist = []
-    dist.append((pt[0]-pts[0][0])**2+(pt[1]-pts[0][1])**2+(pt[2]-pts[0][2])**2)
-    dist.append((pt[0]-pts[1][0])**2+(pt[1]-pts[1][1])**2+(pt[2]-pts[1][2])**2)
-    if dist[0] > dist[1]:
-        temp = dist[1]
-        dist[1] = dist[0]
-        dist[0] = temp
-    ind0 = 0
-    ind1 = 1
-    # print(pts)
-    for i in range(0, len(pts)):
-        val = (pt[0]-pts[i][0])**2+(pt[1]-pts[i][1])**2+(pt[2]-pts[i][2])**2
-        if val < dist[0]:
-            dist[1] = dist[0]
-            dist[0] = val
-            ind1 = ind0
-            ind0 = i
-        elif val < dist[1]:
-            dist[1] = val
-            ind1 = i
-    # print([ind0, ind1])
-    same = pts[ind0][0] == pts[ind1][0] and pts[ind0][1] == pts[ind1][1]
-    print(same)
-    if math.floor(ind0 / 5) == math.floor(ind1 / 5) or same:
-        print([ind0, ind1])
-        oldInd = math.floor(ind1/5)
-        ind = math.floor(ind1 / 5)
-        newI = (ind-1)*5
-        if ind == 0:
-            newI = (ind+1)*5
-        if newI == ind0:
-            newI = newI-1
-        dist[1] = (pt[0]-pts[newI][0])**2+(pt[1]-pts[newI][1])**2+(pt[2]-pts[newI][2])**2
-        print("newI")
-        print(newI)
-        for i in range(0, len(pts)):
-            same = pts[ind0][0] == pts[i][0] and pts[ind0][1] == pts[i][1]
-            if i == 125:
-                print(same)
-                print()
-                print(pts[i])
-            val = (pt[0]-pts[i][0])**2+(pt[1]-pts[i][1])**2+(pt[2]-pts[i][2])**2
-            if math.floor(i/5) != oldInd and not same:
-
-                if val < dist[1]:
-                    dist[1] = val
-                    ind1 = i
-
-    
-    return dist, [ind0, ind1]
-
 fitFrames = vtk.vtkPolyData()
 fitFrames_ends = vtk.vtkPoints()
 fitFrames_lines = vtk.vtkCellArray()
