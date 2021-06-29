@@ -9,6 +9,7 @@ import fit2D as fit2d
 import vtk
 
 def curvedSrep(sharedPts):
+
     # These constants are to create random data for the sake of this example
     # N_POINTS = 20
     # TARGET_X_SLOPE = 1
@@ -17,7 +18,7 @@ def curvedSrep(sharedPts):
     # EXTENTS = 5
     # NOISE = 5
 
-    # # Create random data.
+    # # Create random data to test code if you dont have data.
     # # In your solution, you would provide your own xs, ys, and zs data.
     # xs = [np.random.uniform(2*EXTENTS)-EXTENTS for i in range(N_POINTS)]
     # ys = [np.random.uniform(2*EXTENTS)-EXTENTS for i in range(N_POINTS)]
@@ -26,6 +27,8 @@ def curvedSrep(sharedPts):
     #     zs.append(xs[i]*TARGET_X_SLOPE + \
     #             ys[i]*TARGET_y_SLOPE + \
     #             TARGET_OFFSET + np.random.normal(scale=NOISE))
+
+
     N_POINTS = sharedPts.GetNumberOfPoints()
     xs = []
     ys = []
@@ -40,8 +43,9 @@ def curvedSrep(sharedPts):
     plt.figure()
     ax = plt.subplot(111, projection='3d')
     # ax.scatter(xs, ys, zs, color='r')
-    # plt.show()
 
+
+    # fitting a plane through the group of points
     tmp_A = []
     tmp_b = []
     for i in range(len(xs)):
@@ -54,21 +58,17 @@ def curvedSrep(sharedPts):
     errors = b - A * fit
     residual = np.linalg.norm(errors)
 
-    # Or use Scipy
-    # from scipy.linalg import lstsq
-    # fit, residual, rnk, s = lstsq(A, b)
-
+    
+    # equation of plane fit[0]*x + fit[1]*y + fit[2] = z
     print("solution: %f x + %f y + %f = z" % (fit[0], fit[1], fit[2]))
     # print("errors: \n", errors)
     print("residual:", residual)
     print([fit[0], fit[1], fit[2]])
 
+    # z intercept of the plane
     zInt = fit[2,0]
-    # ax.scatter(0, 0, fit[2,0], color='b')
-    # ax.scatter(0, 1, fit[2,0] + fit[1,0], color='b')
-    # ax.scatter(1, 0, fit[2,0] + fit[0,0], color='b')
-    print("fit")
 
+    # getting normal vector to the plane
     vec1 = np.array([0, 1, fit[2,0] + fit[1,0]]) - np.array([0, 0, fit[2,0]])
     vec2 = np.array([1, 0, fit[2,0] + fit[0,0]]) - np.array([0, 0, fit[2,0]])
     cross = np.cross(vec1, vec2)
@@ -89,6 +89,7 @@ def curvedSrep(sharedPts):
 
     # ax.scatter(0, 0, 0, color='r')
 
+    # projecting all the initial points on the best fitting plane
     planePts = []
     for i in range(0, len(xs)):
         disp = np.array([xs[i], ys[i], zs[i]]) - np.array([0, 0, fit[2,0]])
@@ -98,12 +99,9 @@ def curvedSrep(sharedPts):
                 [newPt[1]],
                 [newPt[2] - fit[2,0]]])
         planePts.append([newPt[0], newPt[1], newPt[2] - fit[2,0]])
-        # ax.scatter(mat2[0], mat2[1], mat2[2], color='b')
-        # dotted = np.dot(A, mat2)
-        # print(dotted)
-        # ax.scatter(dotted[0,0], dotted[1,0], 0, color='k')
         
 
+    # rotating the plane into the XY plane
     trip = np.array([xs[0], ys[0], zs[0]])
     mat1 = np.array([[1, 1, 1], 
                 [1, 1, 1],
@@ -163,7 +161,7 @@ def curvedSrep(sharedPts):
     print(angleXZ)
 
 
-
+    # rotating the points on the best fitting plane into the XY plane
     xyPts = []
     for i in range(0, len(planePts)):
         s = math.sin(angleXZ);
@@ -181,12 +179,8 @@ def curvedSrep(sharedPts):
         znew = newYZpt[0] * s + newYZpt[1] * c;
 
         xyPts.append([xnew, ynew])
-        # print("points")
-        # print(planePts[i])
-        # print([xnew, ynew, znew])
-        # ax.scatter(planePts[i][0], planePts[i][1], planePts[i][2], color='b')
-        # ax.scatter(xnew, ynew, 0, color='r')
 
+    # getting the convex hull of the group of points
     xyPts = np.array(xyPts)
     hull = ConvexHull(xyPts)
     verts = hull.vertices
@@ -194,13 +188,8 @@ def curvedSrep(sharedPts):
     for i in range(0, len(verts)):
         # ax.plot([xyPts[verts[i], 0], xyPts[verts[(i+1)%len(verts)], 0]], [xyPts[verts[i], 1], xyPts[verts[(i+1)%len(verts)], 1]], [0, 0], 'b')
         hullPts.append([xyPts[verts[i], 0], xyPts[verts[i], 1]])
-    # # print(np.dot(A, mat2))
-    # # dotted = np.dot(A, mat2)
-    # # print(dotted[1,0])
 
-    # plt.axis('scaled')
-    # plt.show()
-
+    # fitting 2D flat s-rep to the convex hull of the points on the XY plane
     sXs, sYs, b_pts = fit2d.run_sim(hullPts)
 
     # hullPts.append(hullPts)
@@ -214,6 +203,7 @@ def curvedSrep(sharedPts):
     # ax.scatter(x_new, y_new, color='b')
     print(b_pts[0])
 
+    # sampling points along the spokes of the 2D s-rep
     sampBpts = []
     numSamp = 4
     for i in range(0, len(sXs)):
@@ -221,29 +211,29 @@ def curvedSrep(sharedPts):
             length = math.hypot(b_pts[0][0] - sXs[0], b_pts[0][1] - sYs[0])
             unitV = [(b_pts[0][0] - sXs[0])/length, (b_pts[0][1] - sYs[0])/length]
             spokePts = []
-            for j in range(numSamp, 0, -1):
-                spokePts.append([sXs[0] + unitV[0]*length/j, sYs[0] + unitV[1]*length/j])
+            for j in range(1, numSamp+1):
+                spokePts.append([sXs[0] + unitV[0]*length*j/numSamp, sYs[0] + unitV[1]*length*j/numSamp])
             sampBpts.append(spokePts)
         elif i == len(sXs) - 1:
             length = math.hypot(b_pts[-1][0] - sXs[-1], b_pts[-1][1] - sYs[-1])
             unitV = [(b_pts[-1][0] - sXs[-1])/length, (b_pts[-1][1] - sYs[-1])/length]
             spokePts = []
-            for j in range(numSamp, 0, -1):
-                spokePts.append([sXs[-1] + unitV[0]*length/j, sYs[-1] + unitV[1]*length/j])
+            for j in range(1, numSamp+1):
+                spokePts.append([sXs[-1] + unitV[0]*length*j/numSamp, sYs[-1] + unitV[1]*length*j/numSamp])
             sampBpts.append(spokePts)
         else:
             length = math.hypot(b_pts[2*i-1][0] - sXs[i], b_pts[2*i-1][1] - sYs[i])
             unitV = [(b_pts[2*i-1][0] - sXs[i])/length, (b_pts[2*i-1][1] - sYs[i])/length]
             spokePts = []
-            for j in range(numSamp, 0, -1):
-                spokePts.append([sXs[i] + unitV[0]*length/j, sYs[i] + unitV[1]*length/j])
+            for j in range(1, numSamp+1):
+                spokePts.append([sXs[i] + unitV[0]*length*j/numSamp, sYs[i] + unitV[1]*length*j/numSamp])
             sampBpts.append(spokePts)
 
             length = math.hypot(b_pts[2*i][0] - sXs[i], b_pts[2*i-1][1] - sYs[i])
             unitV = [(b_pts[2*i][0] - sXs[i])/length, (b_pts[2*i][1] - sYs[i])/length]
             spokePts = []
-            for j in range(numSamp, 0, -1):
-                spokePts.append([sXs[i] + unitV[0]*length/j, sYs[i] + unitV[1]*length/j])
+            for j in range(1, numSamp+1):
+                spokePts.append([sXs[i] + unitV[0]*length*j/numSamp, sYs[i] + unitV[1]*length*j/numSamp])
             sampBpts.append(spokePts)
 
     # ax.scatter(sXs, sYs, color='r')
@@ -263,6 +253,7 @@ def curvedSrep(sharedPts):
     #             ax.scatter(sampBpts[i*2-1][j][0], sampBpts[i*2-1][j][1], color='k')
     #             ax.scatter(sampBpts[i*2][j][0], sampBpts[i*2][j][1], color='k')
 
+    # rotating the points back into the best fitting plane
     rXs = []
     rYs = []
     rZs = []
@@ -383,6 +374,7 @@ def curvedSrep(sharedPts):
     iSamPts = []
     srepPts = vtk.vtkPoints()
 
+    # interpolating the points from the best fitting plane into their original space
     for i in range(0, len(sXs)):
         intPt = tps.TransformPoint([rXs[i], rYs[i], rZs[i]])
         iXs.append(intPt[0])
