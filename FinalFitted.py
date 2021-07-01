@@ -223,8 +223,23 @@ fitFrames = vtk.vtkPolyData()
 fitFrames_ends = vtk.vtkPoints()
 fitFrames_lines = vtk.vtkCellArray()
 
+source_b = vtk.vtkPoints()
+target_b = vtk.vtkPoints()
+for i in range(math.floor((bot_srep.GetNumberOfCells() -24) / 2), bot_srep.GetNumberOfCells()):
+    base_pt_id = i * 2
+    bdry_pt_id = i * 2 + 1
+    s_pt = bot_srep.GetPoint(base_pt_id)
+    b_pt = bot_srep.GetPoint(bdry_pt_id)
+    source_b.InsertNextPoint(s_pt)
+    target_b.InsertNextPoint(b_pt)
+tpsB = vtk.vtkThinPlateSplineTransform()
+tpsB.SetSourceLandmarks(source_b)
+tpsB.SetTargetLandmarks(target_b)
+tpsB.SetBasisToR()
+tpsB.Modified()
+
 # finding closest 2D s-rep points on 2D s-rep
-for i in range(0, math.floor((bot_srep.GetNumberOfCells() -24) / 2)):
+for i in range(0, bot_srep.GetNumberOfCells()):
     base_pt_id = i * 2
     bdry_pt_id = i * 2 + 1
     s_pt = bot_srep.GetPoint(base_pt_id)
@@ -309,26 +324,37 @@ for i in range(0, math.floor((bot_srep.GetNumberOfCells() -24) / 2)):
     uL =  [s_pt[0]-uDir[0], s_pt[1]-uDir[1], s_pt[2]-uDir[2]]
 
     spokeTU = tps.TransformPoint(tU)
+    if i >= math.floor((bot_srep.GetNumberOfCells() -24) / 2):
+        spokeTU = tpsB.TransformPoint(tU)
+        ax.scatter(spokeTU[0], spokeTU[1], spokeTU[2], color='k')
     vecTU = [spokeTU[0] - tU[0], spokeTU[1] - tU[1], spokeTU[2] - tU[2]]
     lengthTU = math.sqrt(vecTU[0]**2 + vecTU[1]**2 + vecTU[2]**2)
     vecTU = [vecTU[0]/lengthTU, vecTU[1]/lengthTU, vecTU[2]/lengthTU]
 
     spokeTD = tps.TransformPoint(tD)
+    if i >= math.floor((bot_srep.GetNumberOfCells() -24) / 2):
+        spokeTD = tpsB.TransformPoint(tD)
     vecTD = [spokeTD[0] - tD[0], spokeTD[1] - tD[1], spokeTD[2] - tD[2]]
     lengthTD = math.sqrt(vecTD[0]**2 + vecTD[1]**2 + vecTD[2]**2)
     vecTD = [vecTD[0]/lengthTD, vecTD[1]/lengthTD, vecTD[2]/lengthTD]
 
     spoke = tps.TransformPoint(s_pt)
+    if i >= math.floor((bot_srep.GetNumberOfCells() -24) / 2):
+        spoke = tpsB.TransformPoint(s_pt)
     vec = [spoke[0] - s_pt[0], spoke[1] - s_pt[1], spoke[2] - s_pt[2]]
     length = math.sqrt(vec[0]**2 + vec[1]**2 + vec[2]**2)
     vec = [vec[0]/length, vec[1]/length, vec[2]/length]
 
     spokeUR = tps.TransformPoint(uR)
+    if i >= math.floor((bot_srep.GetNumberOfCells() -24) / 2):
+        spokeUR = tpsB.TransformPoint(uR)
     vecUR = [spokeUR[0] - uR[0], spokeUR[1] - uR[1], spokeUR[2] - uR[2]]
     lengthUR = math.sqrt(vecUR[0]**2 + vecUR[1]**2 + vecUR[2]**2)
     vecUR = [vecUR[0]/lengthUR, vecUR[1]/lengthUR, vecUR[2]/lengthUR]
 
     spokeUL = tps.TransformPoint(uL)
+    if i >= math.floor((bot_srep.GetNumberOfCells() -24) / 2):
+        spokeUL = tpsB.TransformPoint(uL)
     vecUL = [spokeUL[0] - uL[0], spokeUL[1] - uL[1], spokeUL[2] - uL[2]]
     lengthUL = math.sqrt(vecUL[0]**2 + vecUL[1]**2 + vecUL[2]**2)
     vecUL = [vecUL[0]/lengthUL, vecUL[1]/lengthUL, vecUL[2]/lengthUL]
@@ -496,7 +522,13 @@ for i in range(0, math.floor((bot_srep.GetNumberOfCells() -24) / 2)):
     # tph the neighboring points for the frames for the target object
 
 
-plt.show()
+# plt.show()
+
+
+
+
+
+
 
 fitFrames.SetPoints(fitFrames_ends)
 fitFrames.SetLines(fitFrames_lines)
@@ -504,5 +536,5 @@ fitFrames.Modified()
 
 writer2 = vtk.vtkPolyDataWriter()
 writer2.SetInputData(fitFrames)
-writer2.SetFileName('data/frames.vtk')
+writer2.SetFileName('sreps/data/frames.vtk')
 writer2.Write()
