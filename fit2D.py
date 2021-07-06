@@ -377,7 +377,7 @@ def ell_srep(diffeoX, diffeoY, radLen, finRotAng, means):
     skelLen = math.sqrt((skeletonXs[1]-skeletonXs[0])**2 + (skeletonYs[1]-skeletonYs[0])**2) /2
 
     # number of skeletal points
-    numSpoke = 21
+    numSpoke = 20
     theta = -1*math.pi
     sPoints = []
     preTpt = []
