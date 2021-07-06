@@ -5,7 +5,7 @@ import math
 import numpy as np
 from scipy.spatial import ConvexHull, convex_hull_plot_2d
 from scipy.interpolate import splprep, splev
-import fit2D as fit2d
+from sreps import fit2D as fit2d
 import vtk
 
 def curvedSrep(sharedPts):
@@ -260,16 +260,16 @@ def curvedSrep(sharedPts):
     rSamPts = []
     for i in range(0, len(sXs)):
         inAngYZ = angleYZ*-1
-        s = math.sin(inAngYZ);
-        c = math.cos(inAngYZ);
+        s = math.sin(inAngYZ)
+        c = math.cos(inAngYZ)
         inYZ = [sYs[i], 0]
         ynew = inYZ[0] * c - inYZ[1] * s
         znew = inYZ[0] * s + inYZ[1] * c
 
         inXZ = [sXs[i], znew]
         inAngXZ = angleXZ*-1
-        s = math.sin(inAngXZ);
-        c = math.cos(inAngXZ);
+        s = math.sin(inAngXZ)
+        c = math.cos(inAngXZ)
         xnew = inXZ[0] * c - inXZ[1] * s
         znew = inXZ[0] * s + inXZ[1] * c
 
@@ -281,15 +281,15 @@ def curvedSrep(sharedPts):
         if i == 0:
             rSpoke = []
             for j in range(0, numSamp):
-                s = math.sin(inAngYZ);
-                c = math.cos(inAngYZ);
+                s = math.sin(inAngYZ)
+                c = math.cos(inAngYZ)
                 inYZ = [sampBpts[i][j][1], 0]
                 ynew = inYZ[0] * c - inYZ[1] * s
                 znew = inYZ[0] * s + inYZ[1] * c
 
                 inXZ = [sampBpts[i][j][0], znew]
-                s = math.sin(inAngXZ);
-                c = math.cos(inAngXZ);
+                s = math.sin(inAngXZ)
+                c = math.cos(inAngXZ)
                 xnew = inXZ[0] * c - inXZ[1] * s
                 znew = inXZ[0] * s + inXZ[1] * c
                 rSpoke.append([xnew, ynew, znew+zInt])
@@ -299,15 +299,15 @@ def curvedSrep(sharedPts):
         elif i == len(sXs)-1:
             rSpoke = []
             for j in range(0, numSamp):
-                s = math.sin(inAngYZ);
-                c = math.cos(inAngYZ);
+                s = math.sin(inAngYZ)
+                c = math.cos(inAngYZ)
                 inYZ = [sampBpts[-1][j][1], 0]
                 ynew = inYZ[0] * c - inYZ[1] * s
                 znew = inYZ[0] * s + inYZ[1] * c
 
                 inXZ = [sampBpts[-1][j][0], znew]
-                s = math.sin(inAngXZ);
-                c = math.cos(inAngXZ);
+                s = math.sin(inAngXZ)
+                c = math.cos(inAngXZ)
                 xnew = inXZ[0] * c - inXZ[1] * s
                 znew = inXZ[0] * s + inXZ[1] * c
                 rSpoke.append([xnew, ynew, znew+zInt])
@@ -317,15 +317,15 @@ def curvedSrep(sharedPts):
         else:
             rSpoke = []
             for j in range(0, numSamp):
-                s = math.sin(inAngYZ);
-                c = math.cos(inAngYZ);
+                s = math.sin(inAngYZ)
+                c = math.cos(inAngYZ)
                 inYZ = [sampBpts[2*i - 1][j][1], 0]
                 ynew = inYZ[0] * c - inYZ[1] * s
                 znew = inYZ[0] * s + inYZ[1] * c
 
                 inXZ = [sampBpts[2*i - 1][j][0], znew]
-                s = math.sin(inAngXZ);
-                c = math.cos(inAngXZ);
+                s = math.sin(inAngXZ)
+                c = math.cos(inAngXZ)
                 xnew = inXZ[0] * c - inXZ[1] * s
                 znew = inXZ[0] * s + inXZ[1] * c
                 rSpoke.append([xnew, ynew, znew+zInt])
@@ -335,15 +335,15 @@ def curvedSrep(sharedPts):
 
             rSpoke = []
             for j in range(0, numSamp):
-                s = math.sin(inAngYZ);
-                c = math.cos(inAngYZ);
+                s = math.sin(inAngYZ)
+                c = math.cos(inAngYZ)
                 inYZ = [sampBpts[2*i][j][1], 0]
                 ynew = inYZ[0] * c - inYZ[1] * s
                 znew = inYZ[0] * s + inYZ[1] * c
 
                 inXZ = [sampBpts[2*i][j][0], znew]
-                s = math.sin(inAngXZ);
-                c = math.cos(inAngXZ);
+                s = math.sin(inAngXZ)
+                c = math.cos(inAngXZ)
                 xnew = inXZ[0] * c - inXZ[1] * s
                 znew = inXZ[0] * s + inXZ[1] * c
                 rSpoke.append([xnew, ynew, znew+zInt])
