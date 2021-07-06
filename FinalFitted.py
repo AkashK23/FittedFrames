@@ -39,6 +39,7 @@ source_pts.Modified()
 # getting 2D s-rep of the ellipsoid skeleton
 rXs, rYs, rZs, rSamPts = curvedSrep(source_pts)
 numSamp = len(rSamPts[0])
+sampNum = numSamp
 print(numSamp)
 
 iXs = []
@@ -148,7 +149,8 @@ reader3.Update()
 bot_mesh = reader3.GetOutput()
 # mesh of target object
 reader4 = vtk.vtkPolyDataReader()
-reader4.SetFileName('sreps/control/FinTopMesh1.vtk')
+# reader4.SetFileName('sreps/control/FinTopMesh1.vtk')
+reader4.SetFileName('sreps/data/107524.vtk')
 reader4.Update()
 top_mesh = reader4.GetOutput()
 
@@ -180,7 +182,7 @@ tps2.SetBasisToR()
 tps2.Modified()
 
 # method to find closest points on 2D skeleton
-def findClosetPt(pt, pts):
+def findClosetPt(pt, pts, sampling):
     # test = pt[2]
     dist = (pt[0]-pts[0][0])**2+(pt[1]-pts[0][1])**2+(pt[2]-pts[0][2])**2
     ind0 = 0
@@ -191,17 +193,17 @@ def findClosetPt(pt, pts):
             dist = val
             ind0 = i
     
-    nextPt = (ind0+10) % len(pts)
-    prevPt = ind0-10
-    if ind0 - 5 < 0:
-        prevPt = ind0+5
-    elif ind0 - 10 < 0:
-        prevPt = ind0-5
-    if ind0 + 5 > len(pts):
-        nextPt = ind0 - 10
-        prevPt = ind0 - 5
-    elif ind0 + 10 > len(pts):
-        nextPt = ind0 + 5
+    nextPt = (ind0+ (sampling*2)) % len(pts)
+    prevPt = ind0-(sampling*2)
+    if ind0 -  sampling < 0:
+        prevPt = ind0+sampling
+    elif ind0 - (sampling*2) < 0:
+        prevPt = ind0-sampling
+    if ind0 + sampling > len(pts):
+        nextPt = ind0 - (sampling*2)
+        prevPt = ind0 - sampling
+    elif ind0 + (sampling*2) > len(pts):
+        nextPt = ind0 + sampling
     distComp1 = (pt[0]-pts[nextPt][0])**2+(pt[1]-pts[nextPt][1])**2+(pt[2]-pts[nextPt][2])**2
     distComp2 = (pt[0]-pts[prevPt][0])**2+(pt[1]-pts[prevPt][1])**2+(pt[2]-pts[prevPt][2])**2
 
@@ -239,7 +241,9 @@ tpsB.SetBasisToR()
 tpsB.Modified()
 
 # finding closest 2D s-rep points on 2D s-rep
-for i in range(0, bot_srep.GetNumberOfCells()):
+numSamp = numSamp + 1
+eps = 0.5
+for i in range(0, math.floor((bot_srep.GetNumberOfCells() -24) / 2)):
     base_pt_id = i * 2
     bdry_pt_id = i * 2 + 1
     s_pt = bot_srep.GetPoint(base_pt_id)
@@ -248,15 +252,15 @@ for i in range(0, bot_srep.GetNumberOfCells()):
     bdry_pt = np.array(b_pt)
     radius = np.linalg.norm(bdry_pt - base_pt)
     direction = (bdry_pt - base_pt) / radius
-
-    numSamp = 5
-    eps = 0.5
     
-    dist, ind = findClosetPt([s_pt[0], s_pt[1], s_pt[2]], ptsOnSkel)
+    dist, ind = findClosetPt([s_pt[0], s_pt[1], s_pt[2]], ptsOnSkel, numSamp)
     # ax.scatter(s_pt[0], s_pt[1], s_pt[2], color='r')
 
     spk0 = math.floor(ind[0] / numSamp)
     spk1 = math.floor(ind[1] / numSamp)
+
+    # if ind[0] % numSamp == 0:
+    #     continue
 
     # if spk0 == len(rXs) -1:
     #     ax.scatter(ptsOnSkel[ind[0]][0], ptsOnSkel[ind[0]][1], ptsOnSkel[ind[0]][2], color='r')
@@ -294,18 +298,18 @@ for i in range(0, bot_srep.GetNumberOfCells()):
     uDir[2] = uDir[2]*eps / length
 
 
-    if ind[0] % 5 != 4 and ind[0] % 5 != 0:
+    if ind[0] % numSamp != numSamp-1 and ind[0] % numSamp != 0:
         tao = [ptsOnSkel[ind[0]+1][0] - ptsOnSkel[ind[0]-1][0], ptsOnSkel[ind[0]+1][1] - ptsOnSkel[ind[0]-1][1], ptsOnSkel[ind[0]+1][2] - ptsOnSkel[ind[0]-1][2]]
-    if ind[0] % 5 == 0:
+    if ind[0] % numSamp == 0:
         tao = [ptsOnSkel[ind[0]+1][0] - ptsOnSkel[ind[0]][0], ptsOnSkel[ind[0]+1][1] - ptsOnSkel[ind[0]][1], ptsOnSkel[ind[0]+1][2] - ptsOnSkel[ind[0]][2]]
-    if ind[0] % 5 == 4:
+    if ind[0] % numSamp == numSamp-1:
         tao = [ptsOnSkel[ind[0]][0] - ptsOnSkel[ind[0]-1][0], ptsOnSkel[ind[0]][1] - ptsOnSkel[ind[0]-1][1], ptsOnSkel[ind[0]][2] - ptsOnSkel[ind[0]-1][2]]
     
-    if ind[1] % 5 != 4 and ind[1] % 5 != 0:
+    if ind[1] % numSamp != numSamp-1 and ind[1] % numSamp != 0:
         tao1 = [ptsOnSkel[ind[1]+1][0] - ptsOnSkel[ind[1]-1][0], ptsOnSkel[ind[1]+1][1] - ptsOnSkel[ind[1]-1][1], ptsOnSkel[ind[1]+1][2] - ptsOnSkel[ind[1]-1][2]]
-    if ind[1] % 5 == 0:
+    if ind[1] % numSamp == 0:
         tao1 = [ptsOnSkel[ind[1]+1][0] - ptsOnSkel[ind[1]][0], ptsOnSkel[ind[1]+1][1] - ptsOnSkel[ind[1]][1], ptsOnSkel[ind[1]+1][2] - ptsOnSkel[ind[1]][2]]
-    if ind[1] % 5 == 4:
+    if ind[1] % numSamp == numSamp-1:
         tao1 = [ptsOnSkel[ind[1]][0] - ptsOnSkel[ind[1]-1][0], ptsOnSkel[ind[1]][1] - ptsOnSkel[ind[1]-1][1], ptsOnSkel[ind[1]][2] - ptsOnSkel[ind[1]-1][2]]
     
     dist1 = (s_pt[0]-ptsOnSkel[ind[0]][0])**2+(s_pt[1]-ptsOnSkel[ind[0]][1])**2+(s_pt[2]-ptsOnSkel[ind[0]][2])**2
@@ -359,9 +363,11 @@ for i in range(0, bot_srep.GetNumberOfCells()):
     lengthUL = math.sqrt(vecUL[0]**2 + vecUL[1]**2 + vecUL[2]**2)
     vecUL = [vecUL[0]/lengthUL, vecUL[1]/lengthUL, vecUL[2]/lengthUL]
 
-    spokeSam = 5
+    spokeSam = 2
 
     for j in range(0, spokeSam):
+        # if j == 0:
+        #     continue
         unit = length/(spokeSam-1)
         spokePt = [s_pt[0] + vec[0]*j*unit, s_pt[1] + vec[1]*j*unit, s_pt[2] + vec[2]*j*unit]
 
@@ -417,11 +423,17 @@ for i in range(0, bot_srep.GetNumberOfCells()):
         
         finN1 = [spokeT[0] + norm1[0], spokeT[1] + norm1[1], spokeT[2] + norm1[2]]
         finN2 = [spokeT[0] + norm2[0], spokeT[1] + norm2[1], spokeT[2] + norm2[2]]
+        # ax.scatter(finN1[0], finN1[1], finN1[2], color='b')
+        # ax.scatter(finN2[0], finN2[1], finN2[2], color='r')
 
-        nextPt = [s_pt[0] + vec[0]*(j+1)*unit, s_pt[1] + vec[1]*(j+1)*unit, s_pt[2] + vec[2]*(j+1)*unit]
-        if j == 4:
+        
+        if j == spokeSam-1:
             nextPt = [s_pt[0] + vec[0]*(j-1)*unit, s_pt[1] + vec[1]*(j-1)*unit, s_pt[2] + vec[2]*(j-1)*unit]
-   
+            nextPt = tps2.TransformPoint(nextPt)
+        else:
+            nextPt = [s_pt[0] + vec[0]*(j+1)*unit, s_pt[1] + vec[1]*(j+1)*unit, s_pt[2] + vec[2]*(j+1)*unit]
+            nextPt = tps2.TransformPoint(nextPt)
+            # ax.scatter(nextPt[0], nextPt[1], nextPt[2], color='k')
         normToPt1 = [nextPt[0] - finN1[0], nextPt[1] - finN1[1], nextPt[2] - finN1[2]]
         normDist1 = np.linalg.norm(normToPt1)
         normToPt2 = [nextPt[0] - finN2[0], nextPt[1] - finN2[1], nextPt[2] - finN2[2]]
@@ -436,7 +448,7 @@ for i in range(0, bot_srep.GetNumberOfCells()):
             finN = finN2
             vec3 = np.cross(uVec, norm2)
 
-        if j == 4:
+        if j == spokeSam-1:
             if boo1:
                 finN = finN2
                 vec3 = np.cross(uVec, norm2)
@@ -522,7 +534,7 @@ for i in range(0, bot_srep.GetNumberOfCells()):
     # tph the neighboring points for the frames for the target object
 
 
-# plt.show()
+plt.show()
 
 
 
@@ -538,3 +550,5 @@ writer2 = vtk.vtkPolyDataWriter()
 writer2.SetInputData(fitFrames)
 writer2.SetFileName('sreps/data/frames.vtk')
 writer2.Write()
+
+
