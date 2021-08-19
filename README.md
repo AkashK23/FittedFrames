@@ -22,6 +22,13 @@ Then based on the points of the ellipsoid and the initial target object, it inte
 Input: mesh of target object, mesh of ellipsoid, s-rep of ellipsoid
 output: fitted frames for the target object ellipsoid
 
+MCF_FF.py
+(Done by Zhiyuan Liu)
+
+Input: target object mesh
+output: best fitting ellipsoid
+Takes target object, and then implements mean curvature flow for X iterations. Output will be smoothened object. You can change the number of iterations in code
+
 Overview:
 
 Currently finalFitted.py takes in ellipsoid mesh, s-rep of ellipsoid, and target object mesh.
