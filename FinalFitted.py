@@ -6,6 +6,7 @@ import os
 # from curvedSrep import curvedSrep as cs
 sys.path.append(os.path.abspath("."))
 from curvedSrep import curvedSrep
+from MCF_FF import flow
 import matplotlib.pyplot as plt
 from numpy import random
 from scipy.spatial import distance
@@ -15,15 +16,34 @@ ax = plt.subplot(111, projection='3d')
 
 # s-rep of ellipse
 reader = vtk.vtkPolyDataReader()
-reader.SetFileName('sreps/data/reSrep.vtk')
+# reader.SetFileName('data/reSrep.vtk')
+reader.SetFileName('data/ell_srep_caudate.vtk')
 reader.Update()
 bot_srep = reader.GetOutput()
 
 #s-rep of target object
 reader2 = vtk.vtkPolyDataReader()
-reader2.SetFileName('sreps/control/top_srep_twist1.vtk')
+reader2.SetFileName('control/top_srep_twist1.vtk')
 reader2.Update()
 top_srep = reader2.GetOutput()
+
+# ellipsoid mesh
+reader3 = vtk.vtkPolyDataReader()
+# reader3.SetFileName('data/recenter.vtk')
+reader3.SetFileName('data/ell_mesh_caudate.vtk')
+reader3.Update()
+bot_mesh = reader3.GetOutput()
+
+# mesh of target object
+reader4 = vtk.vtkPolyDataReader()
+# reader4.SetFileName('control/FinTopMesh1.vtk')
+# reader4.SetFileName('data/caudate_mesh.vtk')
+reader4.SetFileName('data/107524.vtk')
+reader4.Update()
+top_mesh = reader4.GetOutput()
+
+# flow('data/107524.vtk', 100)
+
 
 # get all the skeletal points of the ellipsoid s-rep
 source_pts = vtk.vtkPoints()
@@ -31,6 +51,7 @@ for i in range(bot_srep.GetNumberOfCells()):
     base_pt_id = i * 2
     bdry_pt_id = i * 2 + 1
     s_pt = bot_srep.GetPoint(base_pt_id)
+    # ax.scatter(s_pt[0], s_pt[1], s_pt[2], color='k')
     b_pt = bot_srep.GetPoint(bdry_pt_id)
     source_pts.InsertNextPoint([s_pt[0], s_pt[1], s_pt[2]])
 source_pts.Modified()
@@ -139,6 +160,21 @@ for i in range(math.floor((bot_srep.GetNumberOfCells() -24) / 2)):
     bdry_pt_id = i * 2 + 1
     s_pt = bot_srep.GetPoint(base_pt_id)
     b_pt = bot_srep.GetPoint(bdry_pt_id)
+    ax.scatter(b_pt[0], b_pt[1], b_pt[2], color='k')
+    ax.scatter(s_pt[0], s_pt[1], s_pt[2], color='r')
+    
+    source_pts2.InsertNextPoint(s_pt)
+    target_pts2.InsertNextPoint(b_pt)
+for i in range(bot_srep.GetNumberOfCells() -24, bot_srep.GetNumberOfCells()):
+    base_pt_id = i * 2
+    bdry_pt_id = i * 2 + 1
+    s_pt = bot_srep.GetPoint(base_pt_id)
+    b_pt = bot_srep.GetPoint(bdry_pt_id)
+    vector = [b_pt[0] - s_pt[0], b_pt[1] - s_pt[1], b_pt[2] - s_pt[2]]
+    vector = np.array(vector)
+    vecLength = np.linalg.norm(vector)
+    vector = (vector*0.5) / vecLength
+    s_pt = [s_pt[0] + vector[0], s_pt[1] + vector[1], s_pt[2] + vector[2]]
     source_pts2.InsertNextPoint(s_pt)
     target_pts2.InsertNextPoint(b_pt)
 tps = vtk.vtkThinPlateSplineTransform()
@@ -147,18 +183,13 @@ tps.SetTargetLandmarks(target_pts2)
 tps.SetBasisToR()
 tps.Modified()
 
-# ellipsoid mesh
-reader3 = vtk.vtkPolyDataReader()
-reader3.SetFileName('sreps/data/recenter.vtk')
-reader3.Update()
-bot_mesh = reader3.GetOutput()
+# pt0 = tps.TransformPoint(ptsOnSkel[0])
+# ax.scatter(pt0[0], pt0[1], pt0[2], color='r')
+# pt25 = tps.TransformPoint(ptsOnSkel[25])
+# ax.scatter(pt25[0], pt25[1], pt25[2], color='r')
+# pt45 = tps.TransformPoint(ptsOnSkel[45])
+# ax.scatter(pt45[0], pt45[1], pt45[2], color='r')
 
-# mesh of target object
-reader4 = vtk.vtkPolyDataReader()
-# reader4.SetFileName('sreps/control/FinTopMesh1.vtk')
-reader4.SetFileName('sreps/data/107524.vtk')
-reader4.Update()
-top_mesh = reader4.GetOutput()
 
 source_pts3 = vtk.vtkPoints()
 target_pts3 = vtk.vtkPoints()
@@ -196,8 +227,13 @@ def findClosetPt(pt, pts, sampling):
         if val < dist:
             dist = val
             ind0 = i
-    
+    # print("ind0", ind0)
+    # print("ind0", ind0)
     nextPt = (ind0+ (sampling*2)) % len(pts)
+    if ind0 == 105:
+        ax.scatter(pts[ind0][0], pts[ind0][1], pts[ind0][2], color='r')
+        ax.scatter(pts[nextPt][0], pts[nextPt][1], pts[nextPt][2], color='r')
+        # return 0,0
     prevPt = ind0-(sampling*2)
     if ind0 -  sampling < 0:
         prevPt = ind0+sampling
@@ -206,6 +242,8 @@ def findClosetPt(pt, pts, sampling):
     if ind0 + sampling > len(pts):
         nextPt = ind0 - (sampling*2)
         prevPt = ind0 - sampling
+    elif ind0 + sampling == len(pts):
+        nextPt = ind0 - sampling
     elif ind0 + (sampling*2) > len(pts):
         nextPt = ind0 + sampling
     distComp1 = (pt[0]-pts[nextPt][0])**2+(pt[1]-pts[nextPt][1])**2+(pt[2]-pts[nextPt][2])**2
@@ -238,8 +276,15 @@ for i in range(math.floor((bot_srep.GetNumberOfCells() -24) / 2), bot_srep.GetNu
     bdry_pt_id = i * 2 + 1
     s_pt = bot_srep.GetPoint(base_pt_id)
     b_pt = bot_srep.GetPoint(bdry_pt_id)
+    if i >= bot_srep.GetNumberOfCells() - 24:
+        vector = [b_pt[0] - s_pt[0], b_pt[1] - s_pt[1], b_pt[2] - s_pt[2]]
+        vector = np.array(vector)
+        vecLength = np.linalg.norm(vector)
+        vector = (vector*0.5) / vecLength
+        s_pt = [s_pt[0] + vector[0], s_pt[1] + vector[1], s_pt[2] + vector[2]]
     source_b.InsertNextPoint(s_pt)
     target_b.InsertNextPoint(b_pt)
+    
 tpsB = vtk.vtkThinPlateSplineTransform()
 tpsB.SetSourceLandmarks(source_b)
 tpsB.SetTargetLandmarks(target_b)
@@ -249,21 +294,37 @@ tpsB.Modified()
 # looping through all the skeletal points on the 3D s-rep
 numSamp = numSamp + 1
 eps = 0.5
-for i in range(0, math.floor((bot_srep.GetNumberOfCells() -24) / 2)):
+print("len", len(ptsOnSkel))
+# for i in range(0, math.floor((bot_srep.GetNumberOfCells() -24) / 2)):
+counting = 0
+for i in range(0, len(ptsOnSkel)*2):
     base_pt_id = i * 2
     bdry_pt_id = i * 2 + 1
-    s_pt = bot_srep.GetPoint(base_pt_id)
+    # if i >= len(ptsOnSkel):
+    #     continue
+    # if counting == 2:
+    #     break
+    # ax.scatter(ptsOnSkel[i][0], ptsOnSkel[i][1], ptsOnSkel[i][2], color='r')
+    s_pt = ptsOnSkel[i%len(ptsOnSkel)]
     b_pt = bot_srep.GetPoint(bdry_pt_id)
     base_pt = np.array(s_pt)
     bdry_pt = np.array(b_pt)
     radius = np.linalg.norm(bdry_pt - base_pt)
     direction = (bdry_pt - base_pt) / radius
+
+    # if i >= bot_srep.GetNumberOfCells() - 24:
+    #     vector = [b_pt[0] - s_pt[0], b_pt[1] - s_pt[1], b_pt[2] - s_pt[2]]
+    #     vector = np.array(vector)
+    #     vecLength = np.linalg.norm(vector)
+    #     vector = (vector*0.5) / vecLength
+    #     s_pt = [s_pt[0] + vector[0], s_pt[1] + vector[1], s_pt[2] + vector[2]]
     
     # finding the closest pt on the 2D s-rep given a skeletal point
-
+    # ax.scatter(s_pt[0], s_pt[1], s_pt[2], color='k')
     dist, ind = findClosetPt([s_pt[0], s_pt[1], s_pt[2]], ptsOnSkel, numSamp)
     # ax.scatter(s_pt[0], s_pt[1], s_pt[2], color='r')
-
+    print("count", counting)
+    print("inds", ind)
     spk0 = math.floor(ind[0] / numSamp)
     spk1 = math.floor(ind[1] / numSamp)
 
@@ -298,27 +359,32 @@ for i in range(0, math.floor((bot_srep.GetNumberOfCells() -24) / 2)):
     # determining the tao direction of the skeletal point
     if ind[0] % numSamp != numSamp-1 and ind[0] % numSamp != 0:
         tao = [ptsOnSkel[ind[0]+1][0] - ptsOnSkel[ind[0]-1][0], ptsOnSkel[ind[0]+1][1] - ptsOnSkel[ind[0]-1][1], ptsOnSkel[ind[0]+1][2] - ptsOnSkel[ind[0]-1][2]]
-    if ind[0] % numSamp == 0:
+    elif ind[0] % numSamp == 0:
         tao = [ptsOnSkel[ind[0]+1][0] - ptsOnSkel[ind[0]][0], ptsOnSkel[ind[0]+1][1] - ptsOnSkel[ind[0]][1], ptsOnSkel[ind[0]+1][2] - ptsOnSkel[ind[0]][2]]
-    if ind[0] % numSamp == numSamp-1:
+    elif ind[0] % numSamp == numSamp-1:
         tao = [ptsOnSkel[ind[0]][0] - ptsOnSkel[ind[0]-1][0], ptsOnSkel[ind[0]][1] - ptsOnSkel[ind[0]-1][1], ptsOnSkel[ind[0]][2] - ptsOnSkel[ind[0]-1][2]]
     
     if ind[1] % numSamp != numSamp-1 and ind[1] % numSamp != 0:
         tao1 = [ptsOnSkel[ind[1]+1][0] - ptsOnSkel[ind[1]-1][0], ptsOnSkel[ind[1]+1][1] - ptsOnSkel[ind[1]-1][1], ptsOnSkel[ind[1]+1][2] - ptsOnSkel[ind[1]-1][2]]
-    if ind[1] % numSamp == 0:
+    elif ind[1] % numSamp == 0:
         tao1 = [ptsOnSkel[ind[1]+1][0] - ptsOnSkel[ind[1]][0], ptsOnSkel[ind[1]+1][1] - ptsOnSkel[ind[1]][1], ptsOnSkel[ind[1]+1][2] - ptsOnSkel[ind[1]][2]]
-    if ind[1] % numSamp == numSamp-1:
+    elif ind[1] % numSamp == numSamp-1:
         tao1 = [ptsOnSkel[ind[1]][0] - ptsOnSkel[ind[1]-1][0], ptsOnSkel[ind[1]][1] - ptsOnSkel[ind[1]-1][1], ptsOnSkel[ind[1]][2] - ptsOnSkel[ind[1]-1][2]]
     
     dist1 = (s_pt[0]-ptsOnSkel[ind[0]][0])**2+(s_pt[1]-ptsOnSkel[ind[0]][1])**2+(s_pt[2]-ptsOnSkel[ind[0]][2])**2
     dist2 = (s_pt[0]-ptsOnSkel[ind[1]][0])**2+(s_pt[1]-ptsOnSkel[ind[1]][1])**2+(s_pt[2]-ptsOnSkel[ind[1]][2])**2
-    ratio1 = dist1 / (dist1+dist2)
-    ratio2 = dist2 / (dist1+dist2)
+    ratio2 = dist1 / (dist1+dist2)
+    ratio1 = dist2 / (dist1+dist2)
+    print("ratio1", ratio1)
+    print("ratio2", ratio2)
+    # finTao = Tao1 direction on the ellipsoid skeleton
+    # ax.scatter(tao[0]+s_pt[0], tao[1]+s_pt[1], tao[2]+s_pt[2], color='k')
     finTao = [(ratio1*tao[0]+ratio2*tao1[0])/2, (ratio1*tao[1]+ratio2*tao1[1])/2, (ratio1*tao[2]+ratio2*tao1[2])/2]
     lenT = math.sqrt(finTao[0]**2 + finTao[1]**2 + finTao[2]**2)
     finTao[0] = finTao[0]*eps / lenT
     finTao[1] = finTao[1]*eps / lenT
     finTao[2] = finTao[2]*eps / lenT
+    ax.scatter(finTao[0]+s_pt[0], finTao[1]+s_pt[1], finTao[2]+s_pt[2], color='k')
 
     # these are the 4 neighboring points given a skeletal point
     # tU means tao up, tD means tao down, uR is theta right, and uL is theta left
@@ -337,36 +403,44 @@ for i in range(0, math.floor((bot_srep.GetNumberOfCells() -24) / 2)):
     # this will need to be replaced when given a 3D interpolator of spokes
     # have a length and a direction vector for the spoke lengths and directions for skeletal point and each of the neighboring points
     spokeTU = tps.TransformPoint(tU)
-    if i >= math.floor((bot_srep.GetNumberOfCells() -24) / 2):
+    ax.scatter(spokeTU[0], spokeTU[1], spokeTU[2], color='r')
+    # ax.scatter(spokeTU[0], spokeTU[1], spokeTU[2], color='k')
+    # if i >= math.floor((bot_srep.GetNumberOfCells() -24) / 2):
+    if i >= len(ptsOnSkel):
         spokeTU = tpsB.TransformPoint(tU)
-        ax.scatter(spokeTU[0], spokeTU[1], spokeTU[2], color='k')
+        
+        # ax.scatter(spokeTU[0], spokeTU[1], spokeTU[2], color='r')
     vecTU = [spokeTU[0] - tU[0], spokeTU[1] - tU[1], spokeTU[2] - tU[2]]
     lengthTU = math.sqrt(vecTU[0]**2 + vecTU[1]**2 + vecTU[2]**2)
     vecTU = [vecTU[0]/lengthTU, vecTU[1]/lengthTU, vecTU[2]/lengthTU]
 
     spokeTD = tps.TransformPoint(tD)
-    if i >= math.floor((bot_srep.GetNumberOfCells() -24) / 2):
+    # if i >= math.floor((bot_srep.GetNumberOfCells() -24) / 2):
+    if i >= len(ptsOnSkel):
         spokeTD = tpsB.TransformPoint(tD)
     vecTD = [spokeTD[0] - tD[0], spokeTD[1] - tD[1], spokeTD[2] - tD[2]]
     lengthTD = math.sqrt(vecTD[0]**2 + vecTD[1]**2 + vecTD[2]**2)
     vecTD = [vecTD[0]/lengthTD, vecTD[1]/lengthTD, vecTD[2]/lengthTD]
 
     spoke = tps.TransformPoint(s_pt)
-    if i >= math.floor((bot_srep.GetNumberOfCells() -24) / 2):
+    # if i >= math.floor((bot_srep.GetNumberOfCells() -24) / 2):
+    if i >= len(ptsOnSkel):
         spoke = tpsB.TransformPoint(s_pt)
     vec = [spoke[0] - s_pt[0], spoke[1] - s_pt[1], spoke[2] - s_pt[2]]
     length = math.sqrt(vec[0]**2 + vec[1]**2 + vec[2]**2)
     vec = [vec[0]/length, vec[1]/length, vec[2]/length]
 
     spokeUR = tps.TransformPoint(uR)
-    if i >= math.floor((bot_srep.GetNumberOfCells() -24) / 2):
+    # if i >= math.floor((bot_srep.GetNumberOfCells() -24) / 2):
+    if i >= len(ptsOnSkel):
         spokeUR = tpsB.TransformPoint(uR)
     vecUR = [spokeUR[0] - uR[0], spokeUR[1] - uR[1], spokeUR[2] - uR[2]]
     lengthUR = math.sqrt(vecUR[0]**2 + vecUR[1]**2 + vecUR[2]**2)
     vecUR = [vecUR[0]/lengthUR, vecUR[1]/lengthUR, vecUR[2]/lengthUR]
 
     spokeUL = tps.TransformPoint(uL)
-    if i >= math.floor((bot_srep.GetNumberOfCells() -24) / 2):
+    # if i >= math.floor((bot_srep.GetNumberOfCells() -24) / 2):
+    if i >= len(ptsOnSkel):
         spokeUL = tpsB.TransformPoint(uL)
     vecUL = [spokeUL[0] - uL[0], spokeUL[1] - uL[1], spokeUL[2] - uL[2]]
     lengthUL = math.sqrt(vecUL[0]**2 + vecUL[1]**2 + vecUL[2]**2)
@@ -381,6 +455,8 @@ for i in range(0, math.floor((bot_srep.GetNumberOfCells() -24) / 2)):
 
     # for all the sampled points, calculating the fitted frames
     for j in range(0, spokeSam):
+        if j == 2:
+            continue
         unit = length/(spokeSam-1)
         spokePt = [s_pt[0] + vec[0]*j*unit, s_pt[1] + vec[1]*j*unit, s_pt[2] + vec[2]*j*unit]
 
@@ -405,6 +481,9 @@ for i in range(0, math.floor((bot_srep.GetNumberOfCells() -24) / 2)):
 
         # Calculating the vector in theta direction (uVec)
         uVec = [uRtrans[0] - uLtrans[0], uRtrans[1] - uLtrans[1], uRtrans[2] - uLtrans[2]]
+        # if i >= math.floor((bot_srep.GetNumberOfCells() -24) / 2):
+        if i >= len(ptsOnSkel):
+            uVec = [uLtrans[0] - uRtrans[0], uLtrans[1] - uRtrans[1], uLtrans[2] - uRtrans[2]]
         uDist = np.linalg.norm(uVec)
         uVec = [uVec[0]/uDist, uVec[1]/uDist, uVec[2]/uDist]
 
@@ -470,14 +549,23 @@ for i in range(0, math.floor((bot_srep.GetNumberOfCells() -24) / 2)):
         else:
             finT = finT2
             vec3 = np.cross(uVec, norm2)
-
+        finT = finT2
         # finU is the first fitted frame vector in the theta direction
         # finT is the second fitted frame vector (found by cross product of theta vector and normal vector)
         # finN is the third fitted frame vector, which is the normal vector
-        ax.plot([spokeT[0], finU[0]], [spokeT[1], finU[1]], [spokeT[2], finU[2]], 'k')
-        ax.plot([spokeT[0], finT[0]], [spokeT[1], finT[1]], [spokeT[2], finT[2]], 'k')
-        ax.plot([spokeT[0], finN[0]], [spokeT[1], finN[1]], [spokeT[2], finN[2]], 'k')
+        # ax.plot([spokeT[0], finU[0]], [spokeT[1], finU[1]], [spokeT[2], finU[2]], 'k')
+        # ax.plot([spokeT[0], finT[0]], [spokeT[1], finT[1]], [spokeT[2], finT[2]], 'k')
+        # ax.plot([spokeT[0], finN[0]], [spokeT[1], finN[1]], [spokeT[2], finN[2]], 'k')
 
+        finVec = [finU[0] - spokeT[0], finU[1] - spokeT[1], finU[2] - spokeT[2]]
+        finDist = np.linalg.norm(finVec)*2
+        finVec = finVec / finDist
+        print(spokeT)
+        print(finVec)
+        print("finDistAFDivide",  np.linalg.norm(finVec))
+        print(spokeT+finVec)
+        print("U dist", finDist)
+        finU = spokeT+finVec
         id0 = fitFrames_ends.InsertNextPoint(tuple(spokeT))
         id1 = fitFrames_ends.InsertNextPoint(tuple(finU))
         spoke_line = vtk.vtkLine()
@@ -485,6 +573,11 @@ for i in range(0, math.floor((bot_srep.GetNumberOfCells() -24) / 2)):
         spoke_line.GetPointIds().SetId(1, id1)
         fitFrames_lines.InsertNextCell(spoke_line)
 
+        finVec = [finT[0] - spokeT[0], finT[1] - spokeT[1], finT[2] - spokeT[2]]
+        finDist = np.linalg.norm(finVec)*2
+        finVec = finVec / finDist
+        print("T dist", finDist)
+        finT = spokeT+finVec
         id0 = fitFrames_ends.InsertNextPoint(tuple(spokeT))
         id1 = fitFrames_ends.InsertNextPoint(tuple(finT))
         spoke_line = vtk.vtkLine()
@@ -492,12 +585,18 @@ for i in range(0, math.floor((bot_srep.GetNumberOfCells() -24) / 2)):
         spoke_line.GetPointIds().SetId(1, id1)
         fitFrames_lines.InsertNextCell(spoke_line)
 
+        finVec = [finN[0] - spokeT[0], finN[1] - spokeT[1], finN[2] - spokeT[2]]
+        finDist = np.linalg.norm(finVec)*2
+        finVec = finVec / finDist
+        print("N dist", finDist)
+        finN = spokeT+finVec
         id0 = fitFrames_ends.InsertNextPoint(tuple(spokeT))
         id1 = fitFrames_ends.InsertNextPoint(tuple(finN))
         spoke_line = vtk.vtkLine()
         spoke_line.GetPointIds().SetId(0, id0)
         spoke_line.GetPointIds().SetId(1, id1)
         fitFrames_lines.InsertNextCell(spoke_line)
+    counting = counting + 1
 
 plt.show()
 
@@ -507,5 +606,5 @@ fitFrames.Modified()
 
 writer2 = vtk.vtkPolyDataWriter()
 writer2.SetInputData(fitFrames)
-writer2.SetFileName('sreps/data/frames.vtk')
+writer2.SetFileName('data/frames2.vtk')
 writer2.Write()
